@@ -1,5 +1,5 @@
 # Combined image with Geth and Node.js for blockchain generation
-FROM ethereum/client-go:v1.14.12
+FROM ethereum/client-go:latest
 
 # Install Node.js 20.x
 RUN apk add --no-cache \
