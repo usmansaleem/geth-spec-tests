@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """
 Generic tracer spec generator for Geth debug tracers.
-Supports any tracer without additional config options.
+Supports tracers with and without config options.
+
+For prestateTracer, automatically generates both diffMode variants:
+- specs/prestate-tracer/diff-mode-false/
+- specs/prestate-tracer/diff-mode-true/
 
 Usage:
   python3 generate-tracer-specs.py [tracer-name]
@@ -11,6 +15,7 @@ Examples:
   python3 generate-tracer-specs.py 4byteTracer
   python3 generate-tracer-specs.py flatTracer
   TRACER=callTracer python3 generate-tracer-specs.py
+  TRACER=prestateTracer python3 generate-tracer-specs.py
 """
 
 import json
@@ -95,8 +100,21 @@ def rpc_call(method, params):
     response = requests.post(RPC_URL, json=payload)
     return response.json()
 
-def generate_spec(block_hex, description, index):
-    """Generate a tracer spec file for a block"""
+def generate_spec(block_hex, description, index, tracer_config=None, subdirectory=None):
+    """Generate a tracer spec file for a block
+
+    Args:
+        block_hex: Block number in hex format
+        description: Block description
+        index: Block index for filename
+        tracer_config: Optional tracer configuration dict
+        subdirectory: Optional subdirectory within tracer directory
+    """
+
+    # Build tracer params
+    tracer_params = {"tracer": TRACER}
+    if tracer_config:
+        tracer_params["tracerConfig"] = tracer_config
 
     # Create request
     request = {
@@ -104,16 +122,15 @@ def generate_spec(block_hex, description, index):
         "method": "debug_traceBlockByNumber",
         "params": [
             block_hex,
-            {
-                "tracer": TRACER
-            }
+            tracer_params
         ],
         "id": 1
     }
 
     # Query Geth
-    print(f"Querying block {block_hex} ({description})...")
-    response = rpc_call("debug_traceBlockByNumber", [block_hex, {"tracer": TRACER}])
+    config_label = f" (config: {tracer_config})" if tracer_config else ""
+    print(f"Querying block {block_hex} ({description}){config_label}...")
+    response = rpc_call("debug_traceBlockByNumber", [block_hex, tracer_params])
 
     # Build spec
     spec = {
@@ -122,9 +139,12 @@ def generate_spec(block_hex, description, index):
         "statusCode": 200
     }
 
-    # Generate filename
+    # Generate filename and path
     filename = f"{index}-debug-{tracer_dir_name}-{block_hex}-{description}.json"
-    filepath = os.path.join("specs", tracer_dir_name, filename)
+    if subdirectory:
+        filepath = os.path.join("specs", tracer_dir_name, subdirectory, filename)
+    else:
+        filepath = os.path.join("specs", tracer_dir_name, filename)
 
     # Ensure directory exists
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
@@ -133,7 +153,8 @@ def generate_spec(block_hex, description, index):
     with open(filepath, 'w') as f:
         json.dump(spec, f, indent=2)
 
-    print(f"  ✓ Created {filename}")
+    relative_path = os.path.join(subdirectory, filename) if subdirectory else filename
+    print(f"  ✓ Created {relative_path}")
 
     # Return result info for summary
     result = response.get("result", [])
@@ -146,7 +167,16 @@ def main():
     print(f"{TRACER} Spec Generator")
     print("=" * 60)
     print(f"Tracer: {TRACER}")
-    print(f"Output directory: specs/{tracer_dir_name}/")
+
+    # Check if this tracer needs special config handling
+    needs_config = TRACER == "prestateTracer"
+
+    if needs_config:
+        print(f"Output directories:")
+        print(f"  - specs/{tracer_dir_name}/diff-mode-false/")
+        print(f"  - specs/{tracer_dir_name}/diff-mode-true/")
+    else:
+        print(f"Output directory: specs/{tracer_dir_name}/")
     print()
 
     # Check if Geth is running
@@ -165,10 +195,38 @@ def main():
 
     # Generate specs for all blocks
     total_results = 0
+    total_files = 0
 
-    for index, (block_hex, description) in enumerate(BLOCKS):
-        result_count = generate_spec(block_hex, description, index)
-        total_results += result_count
+    if needs_config and TRACER == "prestateTracer":
+        # Generate both diffMode variants for prestateTracer
+        print("Generating diffMode: false specs...")
+        print("-" * 60)
+        for index, (block_hex, description) in enumerate(BLOCKS):
+            result_count = generate_spec(
+                block_hex, description, index,
+                tracer_config={"diffMode": False},
+                subdirectory="diff-mode-false"
+            )
+            total_results += result_count
+            total_files += 1
+
+        print()
+        print("Generating diffMode: true specs...")
+        print("-" * 60)
+        for index, (block_hex, description) in enumerate(BLOCKS):
+            result_count = generate_spec(
+                block_hex, description, index,
+                tracer_config={"diffMode": True},
+                subdirectory="diff-mode-true"
+            )
+            total_results += result_count
+            total_files += 1
+    else:
+        # Standard generation without config
+        for index, (block_hex, description) in enumerate(BLOCKS):
+            result_count = generate_spec(block_hex, description, index)
+            total_results += result_count
+            total_files += 1
 
     print()
     print("=" * 60)
@@ -176,10 +234,15 @@ def main():
     print("=" * 60)
     print()
     print(f"Tracer: {TRACER}")
-    print(f"Generated: {len(BLOCKS)} spec files")
+    print(f"Generated: {total_files} spec files")
     print(f"Total results: {total_results}")
     print()
-    print(f"Files created in: specs/{tracer_dir_name}/")
+    if needs_config:
+        print(f"Files created in:")
+        print(f"  - specs/{tracer_dir_name}/diff-mode-false/")
+        print(f"  - specs/{tracer_dir_name}/diff-mode-true/")
+    else:
+        print(f"Files created in: specs/{tracer_dir_name}/")
 
     return 0
 
