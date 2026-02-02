@@ -83,6 +83,9 @@ services:
           exit 1
         fi
 
+        # Delete any existing blocks.bin to prevent corruption
+        rm -f /chain-data/blocks.bin
+
         echo "Exporting blocks 1-$$LAST_BLOCK to blocks.bin..."
         geth export /chain-data/blocks.bin 1 $$LAST_BLOCK --datadir /root/.ethereum
 
