@@ -4,7 +4,7 @@ This directory contains the original chain data, tracer specifications, and test
 
 ## Contents
 
-- **chain-data/** - Blockchain data
+- **../chain-data/** - Blockchain data (shared at top level)
   - `genesis.json` - Genesis configuration (Chain ID 1982)
   - `blocks.bin` - 33 pre-built blocks with transactions (original)
   - `blocks.json` - Transaction definitions (editable)
@@ -80,7 +80,7 @@ deactivate
 ```
 
 ### Edit blockchain data
-Edit `chain-data/blocks.json` to modify transactions, then regenerate the blockchain using tools in `../blockchain-generation/`.
+Edit `../chain-data/blocks.json` to modify transactions, then regenerate the blockchain using tools in `../blockchain-generation/`.
 
 ## Spec File Format
 

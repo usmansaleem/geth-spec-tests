@@ -6,7 +6,7 @@ services:
       - "8548:8545"
     volumes:
       - ./geth-data:/root/.ethereum
-      - ./chain-data:/chain-data
+      - ../chain-data:/chain-data
     command:
       - --datadir=/root/.ethereum
       - --http

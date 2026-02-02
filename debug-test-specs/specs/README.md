@@ -12,7 +12,7 @@ tracer configurations.
 
 **Initialization commands:**
 ```bash
-cd ../chain-data
+cd ../../chain-data
 
 # Initialize with genesis configuration
 geth init --datadir ./data genesis.json

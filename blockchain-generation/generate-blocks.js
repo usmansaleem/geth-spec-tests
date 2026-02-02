@@ -11,7 +11,7 @@ const { Web3 } = require('web3');
 
 // Configuration from environment
 const RPC_URL = process.env.RPC_URL || 'http://localhost:8545';
-const BLOCKS_JSON = process.env.BLOCKS_JSON || 'chain-data/blocks.json';
+const BLOCKS_JSON = process.env.BLOCKS_JSON || '../chain-data/blocks.json';
 
 /**
  * Wait for Geth to be ready

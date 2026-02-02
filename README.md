@@ -124,11 +124,12 @@ rm -rf geth-data
 
 ```
 geth_spec_tests/
+├── chain-data/                    # Shared blockchain data (top-level)
+│   ├── genesis.json               # Genesis configuration (Chain ID 1982)
+│   ├── blocks.json                # Transaction definitions (editable)
+│   └── blocks.bin                 # Pre-built blocks (generated)
+│
 ├── debug-test-specs/              # Test data and specifications
-│   ├── chain-data/                # Blockchain data
-│   │   ├── genesis.json           # Genesis configuration (Chain ID 1982)
-│   │   ├── blocks.bin             # 33 pre-built blocks (original)
-│   │   └── blocks.json            # Transaction definitions (editable)
 │   ├── specs/                     # Tracer specification files
 │   │   ├── call-tracer/           # 34 callTracer specs
 │   │   ├── flatcall-tracer/       # 34 flatCallTracer specs
@@ -144,9 +145,6 @@ geth_spec_tests/
 │   └── README.md                  # Documentation
 │
 ├── blockchain-generation/         # Blockchain generation tools
-│   ├── chain-data/                # Local blockchain data
-│   │   ├── genesis.json           # Genesis configuration (Chain ID 1982)
-│   │   └── blocks.json            # Transaction definitions
 │   ├── docker-compose.generate-node.yml # Generation node (port 8547)
 │   ├── docker-compose.query.yml   # Query node for verification (port 8548)
 │   ├── Dockerfile.combined-node   # Combined Geth + Node.js image
@@ -282,7 +280,7 @@ rm -rf geth-data
 
 To add new transactions to the blockchain:
 
-1. **Edit blockchain-generation/chain-data/blocks.json:**
+1. **Edit chain-data/blocks.json:**
 ```json
 {
   "blocks": [
@@ -514,7 +512,7 @@ The genesis block includes:
 - EIP activations: All through Prague/Osaka
 - Custom blob schedule configurations
 
-See `blockchain-generation/chain-data/genesis.json` or `debug-test-specs/chain-data/genesis.json` for full details.
+See `chain-data/genesis.json` for full details.
 
 ## Use Cases
 
@@ -661,7 +659,7 @@ TRACER=flatCallTracer docker compose up --build spec-generator
 To add new test cases:
 1. Edit transaction definitions:
    ```bash
-   vim blockchain-generation/chain-data/blocks.json
+   vim chain-data/blocks.json
    ```
 
 2. Regenerate blockchain:
@@ -679,11 +677,7 @@ To add new test cases:
    TRACER=callTracer docker compose up --build spec-generator
    ```
 
-4. Update debug-test-specs if needed:
-   ```bash
-   # Copy updated files to debug-test-specs for reference
-   cp blockchain-generation/chain-data/blocks.json debug-test-specs/chain-data/
-   cp blockchain-generation/chain-data/genesis.json debug-test-specs/chain-data/
+4. The chain-data is now shared at the top level - no copying needed!
    ```
 
 ## License

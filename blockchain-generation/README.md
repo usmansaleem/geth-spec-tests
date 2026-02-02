@@ -5,9 +5,9 @@ This directory contains tools for generating test blockchains by replaying trans
 ## Contents
 
 **Chain Data:**
-- `chain-data/genesis.json` - Genesis block configuration (Chain ID 1982)
-- `chain-data/blocks.json` - Transaction definitions to replay (33 blocks, 53 transactions)
-- `chain-data/blocks.bin` - Exported blockchain (generated, blocks 1-N)
+- `../chain-data/genesis.json` - Genesis block configuration (Chain ID 1982)
+- `../chain-data/blocks.json` - Transaction definitions to replay (33 blocks, 53 transactions)
+- `../chain-data/blocks.bin` - Exported blockchain (generated, blocks 1-N)
 
 **Docker Files:**
 - `docker-compose.generate-node.yml` - Blockchain generation service
@@ -35,7 +35,7 @@ This will:
 2. Start Geth with 5-second mining periods
 3. Execute all transactions from `blocks.json`
 4. Stop Geth automatically after completion (prevents extra empty blocks)
-5. Export blockchain to `chain-data/blocks.bin` (blocks 1-N, excluding genesis)
+5. Export blockchain to `../chain-data/blocks.bin` (blocks 1-N, excluding genesis)
 6. Store the blockchain database in `geth-data/` directory
 
 **Output:** You'll see real-time progress with "EXACT MATCH" confirmations for each block, followed by blockchain export.
@@ -54,15 +54,13 @@ rm -rf geth-data
 
 ### Using the Exported Blockchain
 
-After generation completes, `chain-data/blocks.bin` contains the exported blockchain.
+After generation completes, `../chain-data/blocks.bin` contains the exported blockchain.
 
-**To update the test specs:**
+**The chain-data is shared at the top level** - both blockchain-generation and debug-test-specs use the same files. No copying needed!
+
+**To use it directly in tests:**
 ```bash
-# Copy exported blockchain to debug-test-specs
-cp blockchain-generation/chain-data/blocks.bin debug-test-specs/chain-data/blocks.bin
-
-# Or use it directly in tests
-docker run -v $(pwd)/blockchain-generation/chain-data:/data ethereum/client-go:v1.14.12 \
+docker run -v $(pwd)/chain-data:/data ethereum/client-go:v1.14.12 \
   geth init /data/genesis.json --datadir /tmp/testchain && \
   geth import /data/blocks.bin --datadir /tmp/testchain
 ```
@@ -110,7 +108,7 @@ This ensures:
 
 ## Modifying Transactions
 
-Edit `chain-data/blocks.json` to add or modify transactions:
+Edit `../chain-data/blocks.json` to add or modify transactions:
 
 ```json
 {
@@ -278,4 +276,4 @@ After generation completes:
 3. Can be copied to other nodes or test environments
 4. State frozen at exactly block 33
 
-See `chain-data/blocks.json` for the complete transaction list and test coverage details.
+See `../chain-data/blocks.json` for the complete transaction list and test coverage details.

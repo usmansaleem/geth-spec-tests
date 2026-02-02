@@ -4,7 +4,7 @@ services:
     image: ethereum/client-go:latest
     container_name: geth-init
     volumes:
-      - ./chain-data:/chain-data
+      - ../chain-data:/chain-data
       - geth-data:/root/.ethereum
     entrypoint: ["/bin/sh", "-c"]
     command:
@@ -33,7 +33,7 @@ services:
       - "8546:8546"  # WebSocket RPC
       - "30303:30303"  # P2P
     volumes:
-      - ./chain-data:/chain-data
+      - ../chain-data:/chain-data
       - geth-data:/root/.ethereum
     command: >
       --datadir /root/.ethereum

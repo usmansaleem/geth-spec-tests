@@ -8,7 +8,7 @@ services:
     ports:
       - "8547:8545"
     volumes:
-      - ./chain-data:/chain-data
+      - ../chain-data:/chain-data
       - ./generate-blocks.js:/app/generate-blocks.js
       - ./package.json:/app/package.json
       - ./geth-data:/root/.ethereum
@@ -94,8 +94,7 @@ services:
           echo "✓ Export complete: /chain-data/blocks.bin ($${FILESIZE} bytes)"
           echo "  Exported blocks: 1-$$LAST_BLOCK (genesis block 0 excluded)"
           echo
-          echo "The exported blocks.bin can be used to replace:"
-          echo "  debug-test-specs/chain-data/blocks.bin"
+          echo "The chain-data is shared at the top level - no copying needed!"
         else
           echo "✗ Export failed - blocks.bin not created"
           exit 1
