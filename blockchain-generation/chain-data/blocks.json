@@ -558,8 +558,37 @@
           "comment": "Call to a contract creation that fails with a stack underflow",
           "secretKey": "0x8f2a55949038a9610f50fb23b5883af3b4ecb3c3bb792cbcefbd1542c692be63",
           "gasLimit": "0x47B760",
-          "gasPrice": "0x1",
+          "gasPrice": "0xEF",
           "data": "0x602af300"
+        }
+      ]
+    },
+    {
+      "number": "0x22",
+      "transactions" : [
+        {
+          "comment": "Failed CREATE: Out of gas - attempts to create SimpleContract with only 20,000 gas",
+          "secretKey": "0xc87509a1c067bbde78beb793e6fa76530b6382a4c0241e5e4a9ec0a0f44dc0d3",
+          "gasLimit": "0x989680",
+          "gasPrice": "0xEF",
+          "to": "0x0190000000000000000000000000000000000000",
+          "data": "0x00124a12"
+        },
+        {
+          "comment": "Failed CREATE: Reverting constructor - creates RevertingConstructor that always reverts",
+          "secretKey": "0xc87509a1c067bbde78beb793e6fa76530b6382a4c0241e5e4a9ec0a0f44dc0d3",
+          "gasLimit": "0x989680",
+          "gasPrice": "0xEF",
+          "to": "0x0190000000000000000000000000000000000000",
+          "data": "0xcd05cb07"
+        },
+        {
+          "comment": "Failed CREATE: Insufficient value - creates ValueRequiringContract requiring 1 ETH but sends 0",
+          "secretKey": "0xc87509a1c067bbde78beb793e6fa76530b6382a4c0241e5e4a9ec0a0f44dc0d3",
+          "gasLimit": "0x989680",
+          "gasPrice": "0xEF",
+          "to": "0x0190000000000000000000000000000000000000",
+          "data": "0xb4de1e58"
         }
       ]
     }
