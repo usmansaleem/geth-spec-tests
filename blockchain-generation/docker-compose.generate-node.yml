@@ -1,0 +1,71 @@
+services:
+  # Combined Geth + Node.js block generator service
+  generate:
+    build:
+      context: .
+      dockerfile: Dockerfile.combined-node
+    container_name: blockchain-generator
+    ports:
+      - "8547:8545"
+    volumes:
+      - ./chain-data:/chain-data
+      - ./generate-blocks.js:/app/generate-blocks.js
+      - ./package.json:/app/package.json
+      - ./geth-data:/root/.ethereum
+    environment:
+      - RPC_URL=http://localhost:8545
+      - BLOCKS_JSON=/chain-data/blocks.json
+      - DATA_DIR=/root/.ethereum
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "=========================================="
+        echo "Blockchain Generation (Synchronized)"
+        echo "=========================================="
+        echo
+
+        # Clean and initialize
+        echo "Cleaning previous data..."
+        rm -rf /root/.ethereum/geth /root/.ethereum/keystore
+
+        echo "Initializing genesis..."
+        geth init --datadir /root/.ethereum /chain-data/genesis.json
+
+        # Start Geth with 5-second mining period (single stage)
+        echo "Starting Geth with synchronized 5-second mining..."
+        geth --datadir /root/.ethereum \
+          --http --http.addr 0.0.0.0 --http.port 8545 \
+          --http.api eth,net,web3,debug,personal,admin,miner,txpool \
+          --http.corsdomain "*" --http.vhosts "*" \
+          --allow-insecure-unlock --nodiscover --maxpeers 0 \
+          --dev --dev.period 5 \
+          --state.scheme=path \
+          --txpool.pricelimit 0 --txpool.pricebump 0 \
+          --verbosity 3 &
+
+        GETH_PID=$$!
+
+        # Wait for Geth to be ready
+        for i in $$(seq 1 30); do
+          if wget -q -O - http://localhost:8545 2>/dev/null; then
+            echo "✓ Geth ready!"
+            break
+          fi
+          sleep 0.2
+        done
+
+        # Start synchronized block generation
+        echo "Starting synchronized block generation..."
+        echo "Each block will be processed in sync with mining cycles"
+        echo
+        node /app/generate-blocks.js
+
+        # Stop Geth after blockchain generation completes
+        echo
+        echo "Stopping Geth to prevent additional empty blocks..."
+        kill $$GETH_PID
+        sleep 2  # Give Geth time to shutdown gracefully
+        echo "✓ Geth stopped. Blockchain ready for export."
+
+networks:
+  generate-network:

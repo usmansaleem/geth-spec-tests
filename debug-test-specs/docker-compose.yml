@@ -1,0 +1,91 @@
+services:
+  # Initialize Geth with genesis and import blocks.bin
+  geth-init:
+    image: ethereum/client-go:latest
+    container_name: geth-init
+    volumes:
+      - ./chain-data:/chain-data
+      - geth-data:/root/.ethereum
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        if [ ! -d /root/.ethereum/geth ]; then
+          echo 'Initializing genesis block...'
+          geth init --datadir /root/.ethereum /chain-data/genesis.json
+          echo 'Importing blocks from blocks.bin...'
+          geth import --datadir /root/.ethereum /chain-data/blocks.bin
+          echo 'Initialization complete!'
+        else
+          echo 'Geth already initialized, skipping...'
+        fi
+    networks:
+      - geth-network
+
+  # Main Geth node
+  geth:
+    image: ethereum/client-go:latest
+    container_name: geth-node
+    depends_on:
+      geth-init:
+        condition: service_completed_successfully
+    ports:
+      - "8545:8545"  # HTTP RPC
+      - "8546:8546"  # WebSocket RPC
+      - "30303:30303"  # P2P
+    volumes:
+      - ./chain-data:/chain-data
+      - geth-data:/root/.ethereum
+    command: >
+      --datadir /root/.ethereum
+      --http
+      --http.addr 0.0.0.0
+      --http.port 8545
+      --http.api eth,net,web3,debug,personal,admin,miner,txpool
+      --http.corsdomain "*"
+      --http.vhosts "*"
+      --ws
+      --ws.addr 0.0.0.0
+      --ws.port 8546
+      --ws.api eth,net,web3,debug
+      --ws.origins "*"
+      --allow-insecure-unlock
+      --nodiscover
+      --maxpeers 0
+      --verbosity 3
+      --gcmode archive
+      --dev
+      --dev.period 0
+    networks:
+      - geth-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8545"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Generic spec generator service
+  # Usage: TRACER=flatCallTracer docker compose up --build spec-generator
+  spec-generator:
+    build:
+      context: .
+      dockerfile: Dockerfile.spec-generator
+    container_name: spec-generator
+    depends_on:
+      geth:
+        condition: service_healthy
+    volumes:
+      - ./specs:/app/specs
+      - ./generate-tracer-specs.py:/app/generate-tracer-specs.py
+    environment:
+      - RPC_URL=http://geth:8545
+      - TRACER=${TRACER:-4byteTracer}
+    networks:
+      - geth-network
+    command: python3 generate-tracer-specs.py
+
+volumes:
+  geth-data:
+
+networks:
+  geth-network:
+    driver: bridge

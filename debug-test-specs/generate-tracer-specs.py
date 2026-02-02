@@ -1,0 +1,186 @@
+#!/usr/bin/env python3
+"""
+Generic tracer spec generator for Geth debug tracers.
+Supports any tracer without additional config options.
+
+Usage:
+  python3 generate-tracer-specs.py [tracer-name]
+  TRACER=flatTracer python3 generate-tracer-specs.py
+
+Examples:
+  python3 generate-tracer-specs.py 4byteTracer
+  python3 generate-tracer-specs.py flatTracer
+  TRACER=callTracer python3 generate-tracer-specs.py
+"""
+
+import json
+import os
+import sys
+import requests
+
+# Configuration
+RPC_URL = os.environ.get("RPC_URL", "http://localhost:8545")
+
+# Get tracer name from command line argument or environment variable
+TRACER = None
+if len(sys.argv) > 1:
+    TRACER = sys.argv[1]
+else:
+    TRACER = os.environ.get("TRACER")
+
+if not TRACER:
+    print("Error: No tracer specified!")
+    print()
+    print("Usage:")
+    print("  python3 generate-tracer-specs.py [tracer-name]")
+    print("  TRACER=flatTracer python3 generate-tracer-specs.py")
+    print()
+    print("Examples:")
+    print("  python3 generate-tracer-specs.py 4byteTracer")
+    print("  python3 generate-tracer-specs.py flatTracer")
+    print("  python3 generate-tracer-specs.py callTracer")
+    print("  python3 generate-tracer-specs.py prestateTracer")
+    sys.exit(1)
+
+# Normalize tracer name for directory (remove "Tracer" suffix if present, make lowercase)
+tracer_dir_name = TRACER.replace("Tracer", "").lower() + "-tracer"
+
+# Block definitions (block number and description)
+BLOCKS = [
+    ("0x0", "genesis"),
+    ("0x1", "empty"),
+    ("0x2", "simple-transfer"),
+    ("0x3", "self-destruct-contract"),
+    ("0x4", "set-contract-storage"),
+    ("0x5", "clear-storage"),
+    ("0x6", "self-destruct-send-funds"),
+    ("0x7", "increment-bytes"),
+    ("0x8", "call-one-level-deep"),
+    ("0x9", "call-multi-level-deep"),
+    ("0xa", "callcode-one-level"),
+    ("0xb", "delegate-call-one-level-deep"),
+    ("0xc", "sequence-memory"),
+    ("0xd", "MSTORE"),
+    ("0xe", "increment-storage"),
+    ("0xf", "logs"),
+    ("0x10", "halts"),
+    ("0x11", "push-swap"),
+    ("0x12", "memory-read-revert"),
+    ("0x13", "self-destruct"),
+    ("0x14", "create-create2"),
+    ("0x15", "set-and-clean-storage"),
+    ("0x16", "set-and-clean-storage"),
+    ("0x17", "static-call-one-level-deep"),
+    ("0x18", "static-call-multiple-level-deeep"),
+    ("0x19", "erc20-contract-transfer"),
+    ("0x1a", "call-one-level-gas-refund"),
+    ("0x1b", "self-destruct-send-self"),
+    ("0x1c", "self-destruct-sender"),
+    ("0x1d", "stack-underflow"),
+    ("0x1e", "0g0v0_Istanbul"),
+    ("0x1f", "precompile"),
+    ("0x20", "contract-creation-fails-level-1"),
+    ("0x21", "stack-underflow"),
+]
+
+def rpc_call(method, params):
+    """Make an RPC call to Geth"""
+    payload = {
+        "jsonrpc": "2.0",
+        "method": method,
+        "params": params,
+        "id": 1
+    }
+    response = requests.post(RPC_URL, json=payload)
+    return response.json()
+
+def generate_spec(block_hex, description, index):
+    """Generate a tracer spec file for a block"""
+
+    # Create request
+    request = {
+        "jsonrpc": "2.0",
+        "method": "debug_traceBlockByNumber",
+        "params": [
+            block_hex,
+            {
+                "tracer": TRACER
+            }
+        ],
+        "id": 1
+    }
+
+    # Query Geth
+    print(f"Querying block {block_hex} ({description})...")
+    response = rpc_call("debug_traceBlockByNumber", [block_hex, {"tracer": TRACER}])
+
+    # Build spec
+    spec = {
+        "request": request,
+        "response": response,
+        "statusCode": 200
+    }
+
+    # Generate filename
+    filename = f"{index}-debug-{tracer_dir_name}-{block_hex}-{description}.json"
+    filepath = os.path.join("specs", tracer_dir_name, filename)
+
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+
+    # Write file
+    with open(filepath, 'w') as f:
+        json.dump(spec, f, indent=2)
+
+    print(f"  ✓ Created {filename}")
+
+    # Return result info for summary
+    result = response.get("result", [])
+    if isinstance(result, list):
+        return len(result)
+    return 0
+
+def main():
+    print("=" * 60)
+    print(f"{TRACER} Spec Generator")
+    print("=" * 60)
+    print(f"Tracer: {TRACER}")
+    print(f"Output directory: specs/{tracer_dir_name}/")
+    print()
+
+    # Check if Geth is running
+    try:
+        response = rpc_call("eth_blockNumber", [])
+        block_num = int(response.get("result", "0x0"), 16)
+        print(f"✓ Connected to Geth node at {RPC_URL}")
+        print(f"✓ Current block: {block_num}")
+        print()
+    except Exception as e:
+        print(f"✗ Cannot connect to Geth node at {RPC_URL}")
+        print(f"  Error: {e}")
+        print(f"\nPlease start the node first:")
+        print(f"  cd blockchain-generation && docker compose up -d geth")
+        return 1
+
+    # Generate specs for all blocks
+    total_results = 0
+
+    for index, (block_hex, description) in enumerate(BLOCKS):
+        result_count = generate_spec(block_hex, description, index)
+        total_results += result_count
+
+    print()
+    print("=" * 60)
+    print("✓ Generation Complete!")
+    print("=" * 60)
+    print()
+    print(f"Tracer: {TRACER}")
+    print(f"Generated: {len(BLOCKS)} spec files")
+    print(f"Total results: {total_results}")
+    print()
+    print(f"Files created in: specs/{tracer_dir_name}/")
+
+    return 0
+
+if __name__ == "__main__":
+    exit(main())

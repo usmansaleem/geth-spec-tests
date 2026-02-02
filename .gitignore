@@ -1,0 +1,27 @@
+# IDE
+.claude
+.idea
+.vscode
+
+# Node.js
+node_modules/
+package-lock.json
+npm-debug.log
+yarn.lock
+
+# Python
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Generated blockchain data
+blockchain-generation/geth-data/
+
+# macOS
+.DS_Store
+
+# Docker
+.docker/
