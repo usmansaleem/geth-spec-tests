@@ -81,6 +81,7 @@ BLOCKS = [
     ("0x1f", "precompile"),
     ("0x20", "contract-creation-fails-level-1"),
     ("0x21", "stack-underflow"),
+    ("0x22", "failed-create-operations"),
 ]
 
 def rpc_call(method, params):
