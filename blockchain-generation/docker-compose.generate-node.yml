@@ -67,5 +67,36 @@ services:
         sleep 2  # Give Geth time to shutdown gracefully
         echo "✓ Geth stopped. Blockchain ready for export."
 
+        # Export blockchain (blocks 1-N, excluding genesis block 0)
+        echo
+        echo "=========================================="
+        echo "Exporting Blockchain"
+        echo "=========================================="
+
+        # Determine the last block number from blocks.json (hex format)
+        LAST_BLOCK_HEX=$$(grep '"number":' /chain-data/blocks.json | tail -1 | sed 's/.*"number":[[:space:]]*"\(0x[0-9a-fA-F]*\)".*/\1/')
+        LAST_BLOCK=$$(printf "%d" $$LAST_BLOCK_HEX)
+
+        if [ -z "$$LAST_BLOCK" ] || [ "$$LAST_BLOCK" -lt 1 ]; then
+          echo "✗ Failed to determine last block number from blocks.json"
+          echo "  Found: $$LAST_BLOCK_HEX -> $$LAST_BLOCK"
+          exit 1
+        fi
+
+        echo "Exporting blocks 1-$$LAST_BLOCK to blocks.bin..."
+        geth export /chain-data/blocks.bin 1 $$LAST_BLOCK --datadir /root/.ethereum
+
+        if [ -f /chain-data/blocks.bin ]; then
+          FILESIZE=$$(stat -c%s "/chain-data/blocks.bin" 2>/dev/null || stat -f%z "/chain-data/blocks.bin")
+          echo "✓ Export complete: /chain-data/blocks.bin ($${FILESIZE} bytes)"
+          echo "  Exported blocks: 1-$$LAST_BLOCK (genesis block 0 excluded)"
+          echo
+          echo "The exported blocks.bin can be used to replace:"
+          echo "  debug-test-specs/chain-data/blocks.bin"
+        else
+          echo "✗ Export failed - blocks.bin not created"
+          exit 1
+        fi
+
 networks:
   generate-network:

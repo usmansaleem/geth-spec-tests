@@ -590,14 +590,10 @@ void testCallTracer_Block0x4() {
 - Allows reverting transactions to be sent and mined on-chain
 
 **Gas Price Handling:**
-The current `blocks.json` has been modified from the original `blocks.bin`:
-- **Original**: 4 transactions had `gasPrice: "0x01"` (1 wei)
-- **Modified**: Changed to `gasPrice: "0xEF"` (239 wei)
-- **Reason**: Geth dev mode won't mine transactions with gas price 1 wei
-- **Affected blocks**: 0x17, 0x1D, 0x1E, 0x21
-- **Impact**: None for tracer testing - both Geth and Besu produce identical tracer outputs regardless of gas price
+All transactions use their original `gasPrice` values from the source data, including 4 transactions with `gasPrice: "0x01"` (1 wei) in blocks 0x17, 0x1D, 0x1E, and 0x21. These low gas prices work correctly because the blockchain generation uses `--txpool.pricelimit 0` and `--txpool.pricebump 0` flags, which allow transactions with any gas price to be accepted and mined.
 
-The original `blocks.bin` was likely created using tools like `retesteth` or `t8ntool` which bypass the mining system and can handle arbitrary gas prices.
+**Blockchain Export:**
+After generation, the blockchain is automatically exported to `blocks.bin` (RLP-encoded format) which can be imported into any Geth instance using `geth import`. The export includes blocks 1-N (genesis block 0 is excluded as it's defined in `genesis.json`).
 
 ## Common Commands
 

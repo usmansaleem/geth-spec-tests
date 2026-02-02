@@ -19,6 +19,7 @@ __pycache__/
 
 # Generated blockchain data
 blockchain-generation/geth-data/
+blockchain-generation/chain-data/blocks.bin
 
 # macOS
 .DS_Store

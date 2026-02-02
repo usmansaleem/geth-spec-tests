@@ -7,6 +7,7 @@ This directory contains tools for generating test blockchains by replaying trans
 **Chain Data:**
 - `chain-data/genesis.json` - Genesis block configuration (Chain ID 1982)
 - `chain-data/blocks.json` - Transaction definitions to replay (33 blocks, 53 transactions)
+- `chain-data/blocks.bin` - Exported blockchain (generated, blocks 1-N)
 
 **Docker Files:**
 - `docker-compose.generate-node.yml` - Blockchain generation service
@@ -32,11 +33,12 @@ docker compose -f docker-compose.generate-node.yml up
 This will:
 1. Initialize Geth with `genesis.json` (Chain ID 1982)
 2. Start Geth with 5-second mining periods
-3. Execute all 53 transactions from `blocks.json` across 33 blocks
+3. Execute all transactions from `blocks.json`
 4. Stop Geth automatically after completion (prevents extra empty blocks)
-5. Store the result in `geth-data/` directory
+5. Export blockchain to `chain-data/blocks.bin` (blocks 1-N, excluding genesis)
+6. Store the blockchain database in `geth-data/` directory
 
-**Output:** You'll see real-time progress with "EXACT MATCH" confirmations for each block.
+**Output:** You'll see real-time progress with "EXACT MATCH" confirmations for each block, followed by blockchain export.
 
 ### Clean Up After Generation
 
@@ -49,6 +51,27 @@ rm -rf geth-data
 ```
 
 **Note:** The blockchain data is stored in a local directory `./geth-data/` (bind mount) rather than a Docker volume to avoid Docker Desktop disk space limitations.
+
+### Using the Exported Blockchain
+
+After generation completes, `chain-data/blocks.bin` contains the exported blockchain.
+
+**To update the test specs:**
+```bash
+# Copy exported blockchain to debug-test-specs
+cp blockchain-generation/chain-data/blocks.bin debug-test-specs/chain-data/blocks.bin
+
+# Or use it directly in tests
+docker run -v $(pwd)/blockchain-generation/chain-data:/data ethereum/client-go:v1.14.12 \
+  geth init /data/genesis.json --datadir /tmp/testchain && \
+  geth import /data/blocks.bin --datadir /tmp/testchain
+```
+
+**Export details:**
+- Genesis block (0) is **not** included - it's defined in `genesis.json`
+- Block range is automatically determined from `blocks.json` (highest block number)
+- Blocks are exported in RLP-encoded format
+- Compatible with `geth import` command for re-importing into any Geth node
 
 ## How It Works
 
